@@ -120,18 +120,30 @@ function switchTab(type) {
 
 // Fetch โหลดข้อมูล Dashboard
 async function loadDashboard() {
+  const pwd = document.getElementById('adminPassword').value.trim();
   try {
-    fetch(API_URL + "?action=getDashboardStats").then(r=>r.json()).then(res => { if(res.status==="success") showStats(res.data); });
-    fetch(API_URL + "?action=getActiveCases").then(r=>r.json()).then(res => { if(res.status==="success") displayCases(res.data); });
+    fetch(API_URL + "?action=getDashboardStats&pwd=" + encodeURIComponent(pwd))
+      .then(r => r.json())
+      .then(res => { if(res.status === "success") showStats(res.data); });
+
+    fetch(API_URL + "?action=getActiveCases&pwd=" + encodeURIComponent(pwd))
+      .then(r => r.json())
+      .then(res => { if(res.status === "success") displayCases(res.data); });
   } catch(e) { console.error("Error", e); }
 }
 
 async function loadHistory() {
+  const pwd = document.getElementById('adminPassword').value.trim();
   document.getElementById('historyContainer').innerHTML = '<div class="text-center py-10"><p>กำลังดึงข้อมูล...</p></div>';
   try {
-    const res = await fetch(API_URL + "?action=getClosedCases").then(r=>r.json());
-    if(res.status==="success") { allHistoryCases = res.data; displayHistory(allHistoryCases); }
-  } catch(e) { document.getElementById('historyContainer').innerHTML = '<p class="text-red-500 text-center">เกิดข้อผิดพลาด</p>'; }
+    const res = await fetch(API_URL + "?action=getClosedCases&pwd=" + encodeURIComponent(pwd)).then(r => r.json());
+    if(res.status === "success") { 
+      allHistoryCases = res.data; 
+      displayHistory(allHistoryCases); 
+    }
+  } catch(e) { 
+    document.getElementById('historyContainer').innerHTML = '<p class="text-red-500 text-center">เกิดข้อผิดพลาด</p>'; 
+  }
 }
 
 function filterHistory() {
@@ -141,9 +153,10 @@ function filterHistory() {
 }
 
 async function loadCharts() {
+  const pwd = document.getElementById('adminPassword').value.trim();
   try {
-    const res = await fetch(API_URL + "?action=getChartData").then(r=>r.json());
-    if(res.status==="success") renderCharts(res.data);
+    const res = await fetch(API_URL + "?action=getChartData&pwd=" + encodeURIComponent(pwd)).then(r => r.json());
+    if(res.status === "success") renderCharts(res.data);
   } catch(e) { console.error("Chart load error", e); }
 }
 
@@ -209,12 +222,24 @@ function displayHistory(cases) {
 // Fetch POST รับเรื่อง
 async function acceptCase(row, btn) {
   var name = document.getElementById('officerName').value;
+  var pwd = document.getElementById('adminPassword').value.trim();
   if(!name) return alert('กรุณาพิมพ์ชื่อเจ้าหน้าที่รับเรื่อง');
   btn.disabled = true; btn.innerText = "กำลังรับเรื่อง...";
-  
+
   try {
-    const res = await fetch(API_URL, { method: "POST", body: JSON.stringify({ action: "updateCase", row: row, updateType: "accept", officerName: name }) }).then(r=>r.json());
-    if(res.status === "success") loadDashboard(); else { alert("ผิดพลาด: " + res.message); btn.disabled = false; btn.innerText = "✋ รับเรื่องดำเนินการ"; }
+    const res = await fetch(API_URL, { 
+      method: "POST", 
+      body: JSON.stringify({ 
+        action: "updateCase", 
+        row: row, 
+        updateType: "accept", 
+        officerName: name,
+        pwd: pwd 
+      }) 
+    }).then(r => r.json());
+
+    if(res.status === "success") loadDashboard(); 
+    else { alert("ผิดพลาด: " + res.message); btn.disabled = false; btn.innerText = "✋ รับเรื่องดำเนินการ"; }
   } catch(e) { alert("เชื่อมต่อไม่ได้"); btn.disabled = false; }
 }
 
@@ -236,6 +261,20 @@ async function finishCase(row, btn) {
   reader.readAsDataURL(file);
 }
 
+// ภายใน reader.onload ให้เพิ่ม pwd: pwd
+const res = await fetch(API_URL, { 
+  method: "POST", 
+  body: JSON.stringify({ 
+    action: "updateCase", 
+    row: row, 
+    updateType: "done", 
+    remark: remarkInput, 
+    imageFile: e.target.result.split(',')[1], 
+    mimeType: file.type,
+    pwd: document.getElementById('adminPassword').value.trim()
+  }) 
+}).then(r => r.json());
+  
 // กราฟ
 function renderCharts(data) {
   if (myMonthlyChart) myMonthlyChart.destroy();
