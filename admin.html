@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Dashboard</title>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700&family=Kanit:wght@400;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.5/xlsx.full.min.js"></script>
+<style> body { font-family: 'Sarabun', sans-serif; background: #f0f2f5; } .font-kanit { font-family: 'Kanit', sans-serif; } </style>
+</head>
+<body class="p-4">
+
+<!-- ส่วนล็อกอิน -->
+<div id="loginSection" class="max-w-sm mx-auto mt-20 bg-white p-8 rounded-xl shadow-lg border-t-8 border-red-800 text-center">
+  <div class="mb-6">
+    <h2 class="text-xl font-bold text-gray-800 font-kanit">ระบบจัดการข้อร้องเรียน/ปัญหา</h2>
+    <p class="text-sm text-gray-500">สถานีรถไฟพิษณุโลก</p>
+  </div>
+  <input type="password" id="adminPassword" onkeypress="if(event.key === 'Enter') attemptLogin()" class="w-full border-2 border-gray-200 p-3 rounded-lg text-center mb-4 focus:outline-none focus:border-red-800" placeholder="🔒 กรอกรหัสผ่าน">
+  <button id="loginBtn" onclick="attemptLogin()" class="w-full bg-red-800 hover:bg-red-900 text-white py-3 rounded-lg font-bold transition duration-300 shadow-md">เข้าสู่ระบบ</button>
+</div>
+
+<!-- ส่วน Dashboard -->
+<div id="dashboardSection" class="max-w-4xl mx-auto hidden">
+  <div class="bg-red-800 p-6 rounded-t-xl text-center text-white shadow-md relative">
+    <h1 class="text-2xl font-bold font-kanit">PHITSANULOK Admin Dashboard</h1>
+    <p class="text-xs opacity-90 font-light mt-1">ระบบจัดการข้อร้องเรียน/ปัญหา สถานีรถไฟพิษณุโลก</p>
+    <button onclick="location.reload()" class="absolute top-4 right-4 bg-white text-red-800 text-xs px-3 py-1 rounded font-bold hover:bg-gray-100 shadow">ออกจากระบบ</button>
+  </div>
+
+  <div id="statsGrid" class="grid grid-cols-2 md:grid-cols-4 gap-4 my-6">
+    <div class="bg-white p-4 rounded-xl shadow text-center"><p class="text-xs">เคสทั้งหมด</p><p id="statTotal" class="text-2xl font-bold">-</p></div>
+    <div class="bg-white p-4 rounded-xl shadow text-center border-b-4 border-green-500"><p class="text-xs">เสร็จสิ้น</p><p id="statDone" class="text-2xl font-bold text-green-600">-</p></div>
+    <div class="bg-white p-4 rounded-xl shadow text-center border-b-4 border-red-500"><p class="text-xs">ค้างดำเนินการ</p><p id="statPending" class="text-2xl font-bold text-red-600">-</p></div>
+    <div class="bg-white p-4 rounded-xl shadow text-center border-b-4 border-blue-500"><p class="text-xs">ความสำเร็จ</p><p id="statPercent" class="text-2xl font-bold text-blue-600">-%</p></div>
+  </div>
+
+  <div class="flex mb-6 border-b border-gray-200 bg-white rounded-t-xl overflow-hidden">
+    <button onclick="switchTab('active')" id="tabActive" class="flex-1 py-3 px-4 font-bold border-b-4 border-red-800 text-red-800 transition-colors">เคสปัจจุบัน</button>
+    <button onclick="switchTab('history')" id="tabHistory" class="flex-1 py-3 px-4 font-bold border-b-4 border-transparent text-gray-500 hover:text-red-800 transition-colors">ประวัติย้อนหลัง</button>
+    <button onclick="switchTab('stats')" id="tabStats" class="flex-1 py-3 px-4 font-bold border-b-4 border-transparent text-gray-500 hover:text-red-800 transition-colors">📊 สถิติภาพรวม</button>
+  </div>
+
+  <div id="activeContent">
+    <div class="bg-white p-4 rounded-xl shadow mb-6">
+      <input type="text" id="officerName" class="w-full border-2 border-gray-100 p-3 rounded-lg focus:outline-none focus:border-red-800" placeholder="👤 พิมพ์ชื่อเจ้าหน้าที่ก่อนกดรับเรื่อง...">
+    </div>
+    <div id="caseContainer"></div>
+  </div>
+
+  <div id="historyContent" class="hidden">
+    <div class="bg-white p-2 rounded-xl shadow mb-6 flex items-center border-2 border-gray-100">
+      <input type="text" id="searchInput" onkeypress="if(event.key === 'Enter') filterHistory()" class="w-full outline-none text-sm px-3" placeholder="พิมพ์คำค้นหา...">
+      <button onclick="filterHistory()" class="bg-gray-900 text-white px-5 py-2.5 rounded-lg font-bold hover:bg-black transition-all flex-shrink-0 shadow">🔍 ค้นหา</button>
+    </div>
+    <div id="historyContainer"></div>
+  </div>
+
+  <div id="statsContent" class="hidden">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+      <div class="bg-white p-6 rounded-xl shadow"><h3 class="text-center font-bold text-gray-700 mb-4">สถิติรายเดือน</h3><canvas id="monthlyChart"></canvas></div>
+      <div class="bg-white p-6 rounded-xl shadow"><h3 class="text-center font-bold text-gray-700 mb-4">ประเภทปัญหา</h3><div class="w-4/5 mx-auto"><canvas id="typeChart"></canvas></div></div>
+    </div>
+    
+    <div class="bg-white p-6 rounded-xl shadow mt-6 border border-gray-100">
+      <h3 class="text-center font-bold text-gray-700 mb-4">📥 ส่งออกรายงานข้อมูลสถิติ (Excel)</h3>
+      <div class="flex flex-col md:flex-row gap-4 items-end justify-center">
+        <div class="w-full md:w-1/3">
+          <label class="text-xs text-gray-500 mb-1 block font-bold">รูปแบบข้อมูล</label>
+          <select id="exportFilterType" onchange="toggleExportInputs()" class="w-full border-2 border-gray-200 p-2.5 rounded-lg focus:outline-none focus:border-red-800 text-sm">
+            <option value="all">ทั้งหมด (All)</option><option value="month">เลือกตามเดือน/ปี</option>
+            <option value="year">เลือกเฉพาะปี</option><option value="problem">เลือกประเภทปัญหา</option>
+          </select>
+        </div>
+        <div id="exportFilterValueContainer" class="w-full md:w-1/3 hidden transition-all"></div>
+        <div class="w-full md:w-1/3">
+          <button onclick="exportExcelReport(this)" class="w-full bg-green-600 hover:bg-green-700 text-white px-6 py-2.5 rounded-lg font-bold shadow-md transition-all">ดาวน์โหลด Excel</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="adminSuccessModal" class="fixed inset-0 bg-black bg-opacity-60 hidden flex items-center justify-center z-50 backdrop-filter blur-sm px-4">
+  <div class="bg-white p-8 rounded-3xl text-center shadow-2xl max-w-sm w-full border-t-8 border-green-500">
+    <h2 class="text-2xl font-bold text-gray-800 mb-6" style="font-family: Kanit">แก้ไขเสร็จเรียบร้อย</h2>
+    <button onclick="document.getElementById('adminSuccessModal').classList.add('hidden')" class="w-full bg-green-600 text-white font-bold py-3.5 rounded-xl hover:bg-green-700">ตกลง</button>
+  </div>
+</div>
+
+<script>
+// ==========================================
+// API URL (เปลี่ยนจาก /dev เป็น /exec)
+// ==========================================
+const API_URL = "https://script.google.com/macros/s/AKfycbw48aB3rN6Ti34N0c0lLGqiiBiOdo_6Wj7IMeuCkQe8g6_yrx3J_Ys3l0-08uBjNJrzcA/exec";
+
+Chart.register(ChartDataLabels);
+var myMonthlyChart = null, myTypeChart = null, allHistoryCases = [];
+
+function attemptLogin() {
+  if (document.getElementById('adminPassword').value.trim() === "srt") {
+    document.getElementById('loginSection').style.display = "none";
+    document.getElementById('dashboardSection').classList.remove('hidden');
+    loadDashboard();
+  } else { alert("รหัสผ่านไม่ถูกต้อง"); }
+}
+
+function switchTab(type) {
+  var tabs = { 'active': ['tabActive', 'activeContent'], 'history': ['tabHistory', 'historyContent'], 'stats': ['tabStats', 'statsContent'] };
+  for (var k in tabs) {
+    document.getElementById(tabs[k][0]).className = (k === type) ? "flex-1 py-3 px-4 font-bold border-b-4 border-red-800 text-red-800" : "flex-1 py-3 px-4 font-bold border-b-4 border-transparent text-gray-500 hover:text-red-800";
+    if (k === type) document.getElementById(tabs[k][1]).classList.remove('hidden');
+    else document.getElementById(tabs[k][1]).classList.add('hidden');
+  }
+  if (type === 'active') loadDashboard(); else if (type === 'history') loadHistory(); else if (type === 'stats') loadCharts();
+}
+
+// Fetch โหลดข้อมูล Dashboard
+async function loadDashboard() {
+  try {
+    fetch(API_URL + "?action=getDashboardStats").then(r=>r.json()).then(res => { if(res.status==="success") showStats(res.data); });
+    fetch(API_URL + "?action=getActiveCases").then(r=>r.json()).then(res => { if(res.status==="success") displayCases(res.data); });
+  } catch(e) { console.error("Error", e); }
+}
+
+async function loadHistory() {
+  document.getElementById('historyContainer').innerHTML = '<div class="text-center py-10"><p>กำลังดึงข้อมูล...</p></div>';
+  try {
+    const res = await fetch(API_URL + "?action=getClosedCases").then(r=>r.json());
+    if(res.status==="success") { allHistoryCases = res.data; displayHistory(allHistoryCases); }
+  } catch(e) { document.getElementById('historyContainer').innerHTML = '<p class="text-red-500 text-center">เกิดข้อผิดพลาด</p>'; }
+}
+
+function filterHistory() {
+  var query = document.getElementById('searchInput').value.toLowerCase().trim();
+  if (!query) return displayHistory(allHistoryCases);
+  displayHistory(allHistoryCases.filter(c => (c.caseId||"").toLowerCase().includes(query) || (c.location||"").toLowerCase().includes(query) || (c.type||"").toLowerCase().includes(query)));
+}
+
+async function loadCharts() {
+  try {
+    const res = await fetch(API_URL + "?action=getChartData").then(r=>r.json());
+    if(res.status==="success") renderCharts(res.data);
+  } catch(e) { console.error("Chart load error", e); }
+}
+
+// UI แสดงสถิติและเคส
+function showStats(s) {
+  document.getElementById('statTotal').innerText = s.total;
+  document.getElementById('statDone').innerText = s.done;
+  document.getElementById('statPending').innerText = s.pending;
+  document.getElementById('statPercent').innerText = s.percent + '%';
+}
+
+function displayCases(cases) {
+  var container = document.getElementById('caseContainer');
+  if (cases.length === 0) { container.innerHTML = '<p class="text-center py-10 bg-white rounded-xl shadow text-gray-500">🎉 ไม่มีเคสค้างงาน!</p>'; return; }
+  
+  let html = '';
+  cases.forEach(c => {
+    var isAccepted = c.status === "✅ รับเรื่องแล้ว";
+    var imgHtml = (c.image && c.image.includes("id=")) ? '<img src="https://drive.google.com/thumbnail?id=' + c.image.split("id=")[1] + '&sz=w800" class="w-full h-48 object-cover rounded-lg mb-4 border border-gray-200">' : '';
+    
+    var contactStr = c.contact ? String(c.contact).trim() : "-";
+    var isCanCall = contactStr !== "-" && contactStr !== "" && !contactStr.includes("ไม่ระบุ");
+    var callHtml = isCanCall 
+      ? `<div class="bg-blue-50 p-3.5 rounded-xl mb-4 flex justify-between items-center shadow-sm">
+          <div><p class="text-xs text-blue-800 font-bold">👤 ผู้แจ้ง: ${c.reporter}</p><p class="text-base font-bold text-gray-800">📞 เบอร์: ${contactStr}</p></div>
+          <a href="tel:${contactStr}" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-lg text-sm font-bold shadow">📱 โทรติดต่อ</a></div>`
+      : `<div class="bg-gray-50 p-3 rounded-lg mb-4 text-xs text-gray-400 italic text-center">🚫 ไม่ระบุเบอร์โทร</div>`;
+
+    var actionHtml = isAccepted 
+      ? `<div class="p-4 bg-yellow-50 rounded-xl border border-yellow-100">
+          <p class="text-xs text-yellow-700 font-bold mb-2">📸 อัปโหลดรูปภาพหลังแก้ไข</p>
+          <input type="file" id="file_${c.row}" accept="image/*" class="text-sm mb-3 w-full bg-white p-2 rounded">
+          <textarea id="remark_${c.row}" rows="2" class="w-full border-2 border-yellow-200 rounded-lg p-3 text-sm mb-4" placeholder="ระบุหมายเหตุ..."></textarea>
+          <button onclick="finishCase(${c.row}, this)" class="w-full bg-green-600 hover:bg-green-700 text-white py-3 rounded-lg font-bold shadow">🟢 ปิดเคสและส่งรายงาน</button>
+         </div>`
+      : `<button onclick="acceptCase(${c.row}, this)" class="w-full bg-red-800 hover:bg-red-900 text-white py-3 rounded-lg font-bold shadow">✋ รับเรื่องดำเนินการ</button>`;
+
+    html += `<div class="bg-white p-6 rounded-xl shadow mb-5 border-l-8 ${isAccepted ? 'border-yellow-400' : 'border-red-500'}">
+      <div class="flex justify-between items-center mb-4"><span class="text-lg font-bold text-gray-800">${c.caseId}</span><span class="text-xs bg-gray-100 text-gray-600 px-3 py-1 rounded-full font-bold">${c.type}</span></div>
+      ${imgHtml}<p class="text-sm text-gray-600 mb-1">📍 <b>สถานที่:</b> ${c.location}</p><p class="text-sm text-gray-600 mb-4">📝 <b>รายละเอียด:</b> ${c.detail}</p>
+      ${callHtml}${actionHtml}</div>`;
+  });
+  container.innerHTML = html;
+}
+
+function displayHistory(cases) {
+  var container = document.getElementById('historyContainer');
+  if (!cases || cases.length === 0) { container.innerHTML = '<div class="text-center py-10 bg-white shadow rounded-xl"><p class="text-gray-400 font-bold">❌ ไม่พบข้อมูล</p></div>'; return; }
+  let html = '';
+  cases.forEach(c => {
+    var dStr = c.doneDate ? new Date(c.doneDate).toLocaleString('th-TH') : "-";
+    let pdfBtn = (c.pdfUrl && c.pdfUrl.includes("http")) ? `<a href="${c.pdfUrl}" target="_blank" class="block w-full text-center bg-gray-800 hover:bg-black text-white py-3 rounded-lg text-sm font-bold shadow">📄 เปิดดูรายงาน PDF</a>` : `<p class="text-center text-xs text-gray-400">ไม่มีรายงาน PDF</p>`;
+    
+    html += `<div class="bg-white p-5 rounded-xl shadow mb-4 border-l-8 border-green-500">
+      <div class="flex justify-between items-start mb-3"><div><span class="font-bold text-gray-800 text-lg">${c.caseId}</span><p class="text-xs text-gray-500 mt-1">เสร็จเมื่อ: ${dStr}</p></div><span class="text-xs bg-green-100 text-green-700 px-3 py-1 rounded-full font-bold">${c.type}</span></div>
+      <p class="text-sm text-gray-700 mb-1">📍 <b>สถานที่:</b> ${c.location}</p><p class="text-sm text-gray-700 mb-3">📝 <b>รายละเอียดเดิม:</b> ${c.detail}</p>
+      <div class="bg-blue-50 p-3 rounded-lg mb-4"><p class="text-sm text-blue-800 font-bold">✅ หมายเหตุ: <span class="font-normal">${c.remark}</span></p></div>
+      ${pdfBtn}</div>`;
+  });
+  container.innerHTML = html;
+}
+
+// Fetch POST รับเรื่อง
+async function acceptCase(row, btn) {
+  var name = document.getElementById('officerName').value;
+  if(!name) return alert('กรุณาพิมพ์ชื่อเจ้าหน้าที่รับเรื่อง');
+  btn.disabled = true; btn.innerText = "กำลังรับเรื่อง...";
+  
+  try {
+    const res = await fetch(API_URL, { method: "POST", body: JSON.stringify({ action: "updateCase", row: row, updateType: "accept", officerName: name }) }).then(r=>r.json());
+    if(res.status === "success") loadDashboard(); else { alert("ผิดพลาด: " + res.message); btn.disabled = false; btn.innerText = "✋ รับเรื่องดำเนินการ"; }
+  } catch(e) { alert("เชื่อมต่อไม่ได้"); btn.disabled = false; }
+}
+
+// Fetch POST ปิดเคส
+async function finishCase(row, btn) {
+  var fileInput = document.getElementById('file_'+row);
+  var remarkInput = document.getElementById('remark_'+row).value;
+  if(fileInput.files.length === 0) return alert('อัปโหลดรูปก่อนครับ');
+  btn.disabled = true; btn.innerText = "กำลังสร้าง PDF...";
+  
+  var file = fileInput.files[0]; var reader = new FileReader();
+  reader.onload = async function(e) {
+    try {
+      const res = await fetch(API_URL, { method: "POST", body: JSON.stringify({ action: "updateCase", row: row, updateType: "done", remark: remarkInput, imageFile: e.target.result.split(',')[1], mimeType: file.type }) }).then(r=>r.json());
+      if(res.status === "success") { document.getElementById('adminSuccessModal').classList.remove('hidden'); loadDashboard(); } 
+      else { alert("ผิดพลาด: " + res.message); btn.disabled = false; btn.innerText = "🟢 ปิดเคสและส่งรายงาน"; }
+    } catch(err) { alert("เชื่อมต่อไม่ได้"); btn.disabled = false; }
+  };
+  reader.readAsDataURL(file);
+}
+
+// กราฟ
+function renderCharts(data) {
+  if (myMonthlyChart) myMonthlyChart.destroy();
+  if (myTypeChart) myTypeChart.destroy();
+  var monthLabels = Object.keys(data.months);
+  var totalData = monthLabels.map(m => data.months[m].total);
+  var doneData = monthLabels.map(m => data.months[m].done);
+
+  myMonthlyChart = new Chart(document.getElementById('monthlyChart').getContext('2d'), {
+    type: 'bar',
+    data: { labels: monthLabels, datasets: [
+      { label: 'รับแจ้ง', data: totalData, backgroundColor: '#9C1C20', borderRadius: 4 },
+      { label: 'แก้ไขแล้ว', data: doneData, backgroundColor: '#2ECC71', borderRadius: 4 }
+    ]},
+    options: { responsive: true, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }
+  });
+
+  let doughnutData = Object.values(data.types);
+  myTypeChart = new Chart(document.getElementById('typeChart').getContext('2d'), {
+    type: 'doughnut',
+    data: { labels: Object.keys(data.types), datasets: [{ data: doughnutData, backgroundColor: ['#9C1C20', '#F1C40F', '#2ECC71', '#3498DB', '#95A5A6', '#E67E22'], borderWidth: 0 }] },
+    options: { responsive: true, cutout: '65%' }
+  });
+}
+
+// ส่วนดาวน์โหลด Excel
+function toggleExportInputs() {
+  var type = document.getElementById('exportFilterType').value;
+  var container = document.getElementById('exportFilterValueContainer');
+  if (type === 'all') container.classList.add('hidden');
+  else if (type === 'month') {
+    container.classList.remove('hidden');
+    container.innerHTML = '<label class="text-xs font-bold block">เดือนและปี</label><div class="flex gap-2"><select id="exportMonth" class="w-1/2 p-2 border-2 rounded"><option value="1">ม.ค.</option><option value="2">ก.พ.</option><option value="3">มี.ค.</option><option value="4">เม.ย.</option><option value="5">พ.ค.</option><option value="6">มิ.ย.</option><option value="7">ก.ค.</option><option value="8">ส.ค.</option><option value="9">ก.ย.</option><option value="10">ต.ค.</option><option value="11">พ.ย.</option><option value="12">ธ.ค.</option></select><input type="number" id="exportYear" value="'+new Date().getFullYear()+'" class="w-1/2 p-2 border-2 rounded text-center"></div>';
+    document.getElementById('exportMonth').value = new Date().getMonth() + 1;
+  } 
+  else if (type === 'year') {
+    container.classList.remove('hidden');
+    container.innerHTML = '<label class="text-xs font-bold block">ระบุปี (ค.ศ.)</label><input type="number" id="exportYearOnly" value="'+new Date().getFullYear()+'" class="w-full p-2.5 border-2 rounded text-center">';
+  } 
+  else if (type === 'problem') {
+    container.classList.remove('hidden');
+    container.innerHTML = '<label class="text-xs font-bold block">เลือกประเภท</label><select id="exportProblemType" class="w-full p-2.5 border-2 rounded"><option value="ความสะอาด">ความสะอาด</option><option value="อุปกรณ์ชำรุด">อุปกรณ์ชำรุด</option><option value="ไฟฟ้า/แสงสว่าง">ไฟฟ้า/แสงสว่าง</option><option value="ห้องน้ำ">ห้องน้ำ</option><option value="อื่นๆ">อื่นๆ</option></select>';
+  }
+}
+
+async function exportExcelReport(btn) {
+  var originalText = btn.innerHTML;
+  btn.innerHTML = 'กำลังเตรียมไฟล์...'; btn.disabled = true;
+
+  var type = document.getElementById('exportFilterType').value;
+  var queryParams = "?action=getMonthlyExportData&type=" + type;
+  if(type === 'month') queryParams += "&month=" + document.getElementById('exportMonth').value + "&year=" + document.getElementById('exportYear').value;
+  else if(type === 'year') queryParams += "&year=" + document.getElementById('exportYearOnly').value;
+  else if(type === 'problem') queryParams += "&value=" + encodeURIComponent(document.getElementById('exportProblemType').value);
+
+  try {
+    const res = await fetch(API_URL + queryParams).then(r=>r.json());
+    btn.innerHTML = originalText; btn.disabled = false;
+    if(res.status === "success" && res.data.length > 1) {
+      var wb = XLSX.utils.book_new();
+      var ws = XLSX.utils.aoa_to_sheet(res.data);
+      XLSX.utils.book_append_sheet(wb, ws, "Report");
+      XLSX.writeFile(wb, 'Report_Phitsanulok.xlsx');
+    } else alert("❌ ไม่พบข้อมูล");
+  } catch(e) { btn.innerHTML = originalText; btn.disabled = false; alert("เชื่อมต่อไม่ได้"); }
+}
+</script>
+</body>
+</html>

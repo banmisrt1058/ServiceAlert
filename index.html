@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ระบบแจ้งเหตุ - สถานีรถไฟพิษณุโลก</title>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;700&family=Kanit:wght@300;600&display=swap" rel="stylesheet">
+<style>
+  :root { --main-red: #9C1C20; }
+  body { font-family: 'Sarabun', Kanit, sans-serif; background-color: #ffffff; min-height: 100vh; padding: 20px 10px; }
+  .main-card { background: #ffffff; border-radius: 24px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1); overflow: hidden; border: 1px solid #edf2f7; }
+  .header-box { background-color: var(--main-red); padding: 30px 20px; text-align: center; }
+  .input-focus:focus { border-color: var(--main-red); box-shadow: 0 0 0 4px rgba(156, 28, 32, 0.1); }
+  .btn-submit { background-color: var(--main-red); transition: all 0.3s; }
+  .btn-submit:hover:not(:disabled) { background-color: #7d161a; transform: translateY(-1px); }
+  .srt-logo { width: 80px; height: auto; margin: 0 auto 15px; filter: brightness(0) invert(1); }
+  .checkbox-red { accent-color: var(--main-red); width: 16px; height: 16px; }
+  .tab-btn { transition: all 0.3s; border-bottom: 4px solid transparent; }
+  .tab-btn.active { border-color: var(--main-red); color: var(--main-red); font-weight: bold; }
+</style>
+</head>
+<body class="flex items-start justify-center">
+
+<div class="max-w-md w-full main-card">
+  <div class="header-box">
+    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/b/b4/State_Railway_of_Thailand_Seal_with_name.svg/1280px-State_Railway_of_Thailand_Seal_with_name.svg.png" alt="SRT Logo" class="srt-logo">
+    <h1 class="text-white text-xl font-bold mb-1" style="font-family: Kanit">ระบบแจ้งเหตุ/ข้อร้องเรียน</h1>
+    <p class="text-red-100 text-sm font-light uppercase tracking-widest">สถานีรถไฟพิษณุโลก</p>
+  </div>
+
+  <div class="flex border-b border-gray-100">
+    <button onclick="switchMainTab('report')" id="tabReport" class="tab-btn active flex-1 py-4 text-center text-sm">แจ้งเหตุใหม่</button>
+    <button onclick="switchMainTab('track')" id="tabTrack" class="tab-btn flex-1 py-4 text-center text-sm text-gray-400">ติดตามสถานะ</button>
+  </div>
+
+  <div class="p-6">
+    <div id="reportContainer">
+      <form id="complaintForm" onsubmit="showPdpaModal(); return false;">
+        <div class="space-y-5">
+          <div>
+            <div class="flex justify-between items-center mb-1">
+              <label class="text-sm font-bold text-gray-700 ml-1">👤 ชื่อผู้แจ้งเหตุ</label>
+              <label class="flex items-center text-xs text-gray-500 cursor-pointer">
+                <input type="checkbox" id="anonCheck" onchange="toggleName(this)" class="checkbox-red mr-1"> ไม่ระบุชื่อ
+              </label>
+            </div>
+            <input type="text" name="reporter" id="reporterField" required class="w-full bg-gray-50 border-2 border-gray-100 p-3 rounded-xl outline-none input-focus transition-all text-gray-700" placeholder="ระบุชื่อของคุณ">
+          </div>
+          <div>
+            <div class="flex justify-between items-center mb-1">
+              <label class="text-sm font-bold text-gray-700 ml-1">📞 เบอร์โทรศัพท์ติดต่อ</label>
+              <label class="flex items-center text-xs text-gray-500 cursor-pointer">
+                <input type="checkbox" id="noContactCheck" onchange="toggleContact(this)" class="checkbox-red mr-1"> ไม่สะดวกให้ติดต่อกลับ
+              </label>
+            </div>
+            <input type="tel" name="contact" id="contactField" required class="w-full bg-gray-50 border-2 border-gray-100 p-3 rounded-xl outline-none input-focus transition-all text-gray-700" placeholder="08x-xxxxxxx">
+          </div>
+          <div>
+            <label class="text-sm font-bold text-gray-700 ml-1 mb-1 block">🛠️ ประเภทปัญหา</label>
+            <select name="type" required class="w-full bg-gray-50 border-2 border-gray-100 p-3 rounded-xl outline-none input-focus text-gray-700">
+              <option value="">-- เลือกประเภท --</option>
+              <option value="ความสะอาด">🧹 ความสะอาด</option>
+              <option value="อุปกรณ์ชำรุด">🛠️ อุปกรณ์ชำรุด</option>
+              <option value="ไฟฟ้า/แสงสว่าง">💡 ไฟฟ้า/แสงสว่าง</option>
+              <option value="ห้องน้ำ">🚽 ห้องน้ำ</option>
+              <option value="อื่นๆ">❓ อื่นๆ</option>
+            </select>
+          </div>
+          <div>
+            <label class="text-sm font-bold text-gray-700 ml-1 mb-1 block">📍 สถานที่/จุดที่พบ</label>
+            <input type="text" name="location" required class="w-full bg-gray-50 border-2 border-gray-100 p-3 rounded-xl outline-none input-focus text-gray-700" placeholder="เช่น ชานชาลา 1, หน้าห้องตั๋ว">
+          </div>
+          <div>
+            <label class="text-sm font-bold text-gray-700 ml-1 mb-1 block">📝 รายละเอียดเพิ่มเติม</label>
+            <textarea name="detail" rows="2" class="w-full bg-gray-50 border-2 border-gray-100 p-3 rounded-xl outline-none input-focus text-gray-700" placeholder="ระบุรายละเอียด..."></textarea>
+          </div>
+          <div>
+            <label class="text-sm font-bold text-gray-700 ml-1 mb-1 block">📸 ภาพถ่ายประกอบ</label>
+            <div class="relative">
+              <input type="file" id="imageInput" accept="image/*" class="hidden" onchange="updateFileName(this)">
+              <label for="imageInput" class="flex flex-col items-center justify-center w-full h-24 border-2 border-dashed border-gray-200 rounded-xl cursor-pointer hover:bg-gray-100 transition-all bg-gray-50">
+                <div id="uploadPlaceholder" class="text-center"><p class="text-xs text-gray-400">กดเพื่อถ่ายภาพหรือแนบไฟล์</p></div>
+                <p id="fileNameDisplay" class="text-xs text-red-800 font-bold hidden"></p>
+              </label>
+            </div>
+          </div>
+        </div>
+        <button type="submit" id="submitBtn" class="w-full btn-submit text-white font-bold py-4 rounded-xl mt-8 shadow-md text-lg">ยืนยันการส่งข้อมูล</button>
+      </form>
+    </div>
+
+    <!-- หน้าติดตามสถานะ -->
+    <div id="trackContainer" class="hidden">
+      <div class="bg-gray-50 p-5 rounded-2xl border-2 border-dashed border-gray-200 mb-6">
+        <label class="text-sm font-bold text-gray-700 block mb-2 text-center">🔎 ค้นหาด้วยรหัสเคส หรือ เบอร์โทร</label>
+        <div class="flex gap-2">
+          <input type="text" id="trackInput" class="flex-1 border-2 border-gray-200 p-3 rounded-xl outline-none focus:border-red-800 transition-all text-center font-bold" placeholder="เช่น CASE-20261007">
+          <button onclick="searchStatus()" class="bg-gray-800 text-white px-4 rounded-xl hover:bg-black transition-all">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+          </button>
+        </div>
+      </div>
+      <div id="searchResult" class="space-y-4">
+        <p class="text-center text-gray-400 text-xs py-10">กรอกข้อมูลด้านบนเพื่อเริ่มการค้นหา</p>
+      </div>
+    </div>
+
+    <div class="mt-8 text-center border-t border-gray-100 pt-6 pb-2">
+      <!-- ลิงก์ไปหน้า Admin -->
+      <a href="admin.html" class="text-xs text-gray-400 hover:text-red-800 transition-colors">Station Officer Only</a>
+      <p class="text-[9px] text-gray-300 mt-3 tracking-wider">พัฒนาโดย ทีมนวัตกรรม กองจัดการเดินรถเขต 3</p>
+    </div>
+  </div>
+</div>
+
+<!-- Modals -->
+<div id="pdpaModal" class="fixed inset-0 bg-black bg-opacity-60 hidden flex items-center justify-center z-50 backdrop-filter blur-sm px-4">
+  <div class="bg-white p-6 md:p-8 rounded-3xl shadow-2xl max-w-sm w-full border-t-8 border-gray-800">
+    <div class="text-center mb-4">
+      <div class="w-16 h-16 bg-gray-100 text-gray-700 rounded-full flex items-center justify-center mx-auto mb-4 shadow-inner">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
+      </div>
+      <h2 class="text-lg font-bold text-gray-800 mb-2 leading-tight" style="font-family: Kanit">นโยบายคุ้มครองข้อมูลส่วนบุคคล<br>(PDPA)</h2>
+    </div>
+    <div class="bg-gray-50 p-4 rounded-2xl mb-6 text-sm text-gray-600 border border-gray-100">
+      <p class="mb-3 leading-relaxed">เราให้ความสำคัญกับความเป็นส่วนตัวของท่าน ข้อมูลที่ท่านกรอกในฟอร์มนี้จะถูกใช้เพื่อวัตถุประสงค์ในการตรวจสอบและแก้ไขปัญหาตามที่ท่านร้องเรียนเท่านั้น</p>
+      <p class="font-bold text-gray-800 mb-1">ข้อมูลที่จัดเก็บ:</p>
+      <ul class="list-none space-y-1 mb-3 ml-1 text-gray-600"><li>ㆍเลขที่อ้างอิง</li><li>ㆍชื่อ, เบอร์โทร, อีเมล (หากระบุ)</li><li>ㆍรายละเอียดและหลักฐานการร้องเรียน</li></ul>
+      <p class="text-red-800 font-bold text-xs bg-red-50 p-2 rounded-lg">ข้อมูลของท่านจะถูกเก็บเป็นความลับและเข้าถึงได้โดยเจ้าหน้าที่ผู้มีส่วนเกี่ยวข้องเท่านั้น</p>
+    </div>
+    <div class="flex gap-3">
+      <button type="button" onclick="declinePdpa()" class="w-1/3 bg-gray-200 text-gray-600 font-bold py-3.5 rounded-xl hover:bg-gray-300 transition-all text-sm">ปฏิเสธ</button>
+      <button type="button" onclick="acceptPdpa()" class="w-2/3 bg-red-800 text-white font-bold py-3.5 rounded-xl hover:bg-red-900 transition-all shadow-md text-sm">ยอมรับและส่ง</button>
+    </div>
+  </div>
+</div>
+
+<div id="successModal" class="fixed inset-0 bg-black bg-opacity-60 hidden flex items-center justify-center z-50 backdrop-filter blur-sm">
+  <div class="bg-white p-8 rounded-3xl text-center shadow-2xl max-w-sm w-full mx-4 border-t-8 border-red-800">
+    <div class="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" /></svg>
+    </div>
+    <h2 class="text-2xl font-bold text-gray-800 mb-2" style="font-family: Kanit">รับเรื่องเรียบร้อย!</h2>
+    <p class="text-gray-500 text-sm mb-6 leading-relaxed">โปรดเก็บรหัสนี้ไว้เพื่อติดตามผลการปฏิบัติงาน</p>
+    <div class="bg-red-50 p-4 rounded-2xl mb-6 border border-red-100">
+      <p class="text-xs text-red-800 font-bold uppercase tracking-widest mb-1">รหัสการแจ้งเหตุของคุณ</p>
+      <p id="displayCaseId" class="text-3xl font-bold text-red-900 tracking-tighter">------</p>
+    </div>
+    <button onclick="closeModal()" class="w-full bg-gray-800 text-white font-bold py-3.5 rounded-xl">ตกลงและปิดหน้าต่าง</button>
+  </div>
+</div>
+
+<div id="loader" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50">
+  <div class="bg-white p-8 rounded-2xl text-center">
+    <div class="animate-spin rounded-full h-10 w-10 border-t-4 border-red-800 mx-auto mb-4"></div>
+    <p class="font-bold text-gray-800" id="statusText">กำลังดำเนินการ...</p>
+  </div>
+</div>
+
+<script>
+// ==========================================
+// API URL (เปลี่ยนคำลงท้ายจาก /dev เป็น /exec แล้ว)
+// ==========================================
+const API_URL = "https://script.google.com/macros/s/AKfycbw48aB3rN6Ti34N0c0lLGqiiBiOdo_6Wj7IMeuCkQe8g6_yrx3J_Ys3l0-08uBjNJrzcA/exec";
+
+// ฟังก์ชันเปิด/ปิดฟิลด์ และ สลับ Tab
+function toggleName(cb) { const f = document.getElementById('reporterField'); f.value = cb.checked ? "ไม่ระบุชื่อ" : ""; f.disabled = cb.checked; f.classList.toggle('bg-gray-200', cb.checked); }
+function toggleContact(cb) { const f = document.getElementById('contactField'); f.value = cb.checked ? "ไม่ระบุเบอร์โทร" : ""; f.disabled = cb.checked; f.classList.toggle('bg-gray-200', cb.checked); }
+function updateFileName(input) {
+  if (input.files.length > 0) {
+    document.getElementById('fileNameDisplay').innerText = "✅ " + input.files[0].name;
+    document.getElementById('fileNameDisplay').classList.remove('hidden');
+    document.getElementById('uploadPlaceholder').classList.add('hidden');
+  }
+}
+function showPdpaModal() { document.getElementById('pdpaModal').classList.remove('hidden'); }
+function declinePdpa() { document.getElementById('pdpaModal').classList.add('hidden'); }
+function acceptPdpa() { document.getElementById('pdpaModal').classList.add('hidden'); handleFormSubmit(document.getElementById('complaintForm')); }
+function closeModal() { document.getElementById('successModal').classList.add('hidden'); }
+
+function switchMainTab(type) {
+  document.getElementById('reportContainer').classList.toggle('hidden', type !== 'report');
+  document.getElementById('trackContainer').classList.toggle('hidden', type !== 'track');
+  document.getElementById('tabReport').classList.toggle('active', type === 'report');
+  document.getElementById('tabReport').classList.toggle('text-gray-400', type !== 'report');
+  document.getElementById('tabTrack').classList.toggle('active', type === 'track');
+  document.getElementById('tabTrack').classList.toggle('text-gray-400', type !== 'track');
+}
+
+// แปลงภาพ
+function processImage(file) {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = (e) => {
+      const img = new Image();
+      img.src = e.target.result;
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let width = img.width, height = img.height, max = 1000;
+        if (width > height) { if (width > max) { height *= max / width; width = max; } }
+        else { if (height > max) { width *= max / height; height = max; } }
+        canvas.width = width; canvas.height = height;
+        canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+        resolve({ base64: canvas.toDataURL('image/jpeg', 0.7).split(',')[1], mimeType: 'image/jpeg', filename: file.name });
+      };
+    };
+  });
+}
+
+// ส่งฟอร์ม
+async function handleFormSubmit(form) {
+  const btn = document.getElementById('submitBtn');
+  const loader = document.getElementById('loader');
+  const statusText = document.getElementById('statusText');
+  const fileInput = document.getElementById('imageInput');
+  
+  btn.disabled = true; loader.classList.remove('hidden');
+  statusText.innerText = "กำลังเตรียมข้อมูล...";
+  
+  const payload = {
+    action: "submit",
+    reporterName: document.getElementById('anonCheck').checked ? "ไม่ระบุชื่อ" : form.reporter.value,
+    phone: document.getElementById('noContactCheck').checked ? "ไม่ระบุเบอร์โทร" : form.contact.value,
+    category: form.type.value,
+    location: form.location.value,
+    description: form.detail.value,
+    imageFile: "", mimeType: "", filename: ""
+  };
+  
+  try {
+    if (fileInput.files.length > 0) {
+      statusText.innerText = "กำลังประมวลผลรูปภาพ...";
+      const imgData = await processImage(fileInput.files[0]);
+      payload.imageFile = imgData.base64;
+      payload.mimeType = imgData.mimeType;
+      payload.filename = imgData.filename;
+    }
+    
+    statusText.innerText = "กำลังส่งข้อมูล...";
+    
+    const response = await fetch(API_URL, {
+      method: "POST",
+      body: JSON.stringify(payload)
+    });
+    
+    const resData = await response.json();
+    loader.classList.add('hidden');
+    
+    if(resData.status === 'success') {
+      document.getElementById('displayCaseId').innerText = resData.caseId || '-';
+      document.getElementById('successModal').classList.remove('hidden');
+      form.reset();
+      document.getElementById('fileNameDisplay').classList.add('hidden');
+      document.getElementById('uploadPlaceholder').classList.remove('hidden');
+    } else { alert("❌ เกิดข้อผิดพลาด: " + resData.message); }
+  } catch (err) { loader.classList.add('hidden'); alert("❌ ติดต่อ Server ไม่ได้ กรุณาลองใหม่"); }
+  btn.disabled = false;
+}
+
+// ติดตามเคส
+async function searchStatus() {
+  const input = document.getElementById('trackInput').value;
+  if(!input) return alert("กรุณากรอกรหัสเคสหรือเบอร์โทร");
+
+  const resultDiv = document.getElementById('searchResult');
+  resultDiv.innerHTML = '<div class="text-center py-10"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-red-800 mx-auto"></div><p class="text-xs text-gray-500 mt-2">กำลังหาข้อมูล...</p></div>';
+
+  try {
+    const response = await fetch(API_URL + "?action=trackCase&query=" + encodeURIComponent(input));
+    const res = await response.json();
+    
+    if(res.status === "success") {
+      if(res.data.length === 0) {
+        resultDiv.innerHTML = '<div class="text-center py-10 bg-gray-50 rounded-2xl"><p class="text-gray-400 font-bold">❌ ไม่พบข้อมูลการแจ้งเหตุนี้</p></div>';
+        return;
+      }
+      
+      let html = '';
+      res.data.forEach(c => {
+        let statusBg = "bg-red-50 text-red-700";
+        if(c.status.includes("เสร็จสิ้น")) statusBg = "bg-green-100 text-green-700 font-bold";
+        else if(c.status.includes("รับเรื่อง")) statusBg = "bg-yellow-100 text-yellow-700 font-bold";
+
+        html += `
+          <div class="bg-white p-5 rounded-3xl shadow-sm border border-gray-100 mb-4">
+            <div class="flex justify-between items-start mb-3">
+              <div><span class="text-lg font-bold text-gray-800">${c.caseId}</span></div>
+              <span class="text-[10px] px-3 py-1 rounded-full ${statusBg}">${c.status}</span>
+            </div>
+            <p class="text-sm">📍 <b>สถานที่:</b> ${c.location}</p>
+            <p class="text-sm">🛠️ <b>ประเภท:</b> ${c.type}</p>
+          </div>
+        `;
+      });
+      resultDiv.innerHTML = html;
+    }
+  } catch (err) { resultDiv.innerHTML = '<p class="text-center text-red-500">❌ ไม่สามารถเชื่อมต่อระบบได้</p>'; }
+}
+</script>
+</body>
+</html>
