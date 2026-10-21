@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Admin Dashboard</title>
+<title>Admin Dashboard - สถานีรถไฟบ้านหมี่</title>
 <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700&family=Kanit:wght@400;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -26,7 +26,7 @@
 <!-- ส่วน Dashboard -->
 <div id="dashboardSection" class="max-w-4xl mx-auto hidden">
   <div class="bg-red-800 p-6 rounded-t-xl text-center text-white shadow-md relative">
-    <h1 class="text-2xl font-bold font-kanit">BAN-MI Admin Dashboard</h1>
+    <h1 class="text-2xl font-bold font-kanit">BAN MI Admin Dashboard</h1>
     <p class="text-xs opacity-90 font-light mt-1">ระบบจัดการข้อร้องเรียน/ปัญหา สถานีรถไฟบ้านหมี่</p>
     <button onclick="location.reload()" class="absolute top-4 right-4 bg-white text-red-800 text-xs px-3 py-1 rounded font-bold hover:bg-gray-100 shadow">ออกจากระบบ</button>
   </div>
@@ -93,19 +93,22 @@
 
 <script>
 // ==========================================
-// API URL (เปลี่ยนจาก /dev เป็น /exec)
+// API URL
 // ==========================================
-const API_URL = "https://script.google.com/macros/s/AKfycbyZigP4Req-vVmpVpL6q6vxOFbI-NvUIJn9N7DxA0xUo9G98oEnB1QTubj7-trd3Y8/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbxJ4WqwNJWgVJyW5QwX9MXoo4ipZi30astacnbXcCta/exec";
 
 Chart.register(ChartDataLabels);
 var myMonthlyChart = null, myTypeChart = null, allHistoryCases = [];
 
 function attemptLogin() {
-  if (document.getElementById('adminPassword').value.trim() === "srt") {
+  var pwdInput = document.getElementById('adminPassword').value.trim();
+  if (pwdInput === "srt") {
     document.getElementById('loginSection').style.display = "none";
     document.getElementById('dashboardSection').classList.remove('hidden');
     loadDashboard();
-  } else { alert("รหัสผ่านไม่ถูกต้อง"); }
+  } else { 
+    alert("รหัสผ่านไม่ถูกต้อง"); 
+  }
 }
 
 function switchTab(type) {
@@ -118,32 +121,23 @@ function switchTab(type) {
   if (type === 'active') loadDashboard(); else if (type === 'history') loadHistory(); else if (type === 'stats') loadCharts();
 }
 
-// Fetch โหลดข้อมูล Dashboard
+// Fetch โหลดข้อมูล Dashboard (แก้ไข: เพิ่ม &pwd=)[cite: 3]
 async function loadDashboard() {
   const pwd = document.getElementById('adminPassword').value.trim();
   try {
-    fetch(API_URL + "?action=getDashboardStats&pwd=" + encodeURIComponent(pwd))
-      .then(r => r.json())
-      .then(res => { if(res.status === "success") showStats(res.data); });
-
-    fetch(API_URL + "?action=getActiveCases&pwd=" + encodeURIComponent(pwd))
-      .then(r => r.json())
-      .then(res => { if(res.status === "success") displayCases(res.data); });
+    fetch(API_URL + "?action=getDashboardStats&pwd=" + encodeURIComponent(pwd)).then(r=>r.json()).then(res => { if(res.status==="success") showStats(res.data); });
+    fetch(API_URL + "?action=getActiveCases&pwd=" + encodeURIComponent(pwd)).then(r=>r.json()).then(res => { if(res.status==="success") displayCases(res.data); });
   } catch(e) { console.error("Error", e); }
 }
 
+// โหลดประวัติ (แก้ไข: เพิ่ม &pwd=)[cite: 3]
 async function loadHistory() {
   const pwd = document.getElementById('adminPassword').value.trim();
   document.getElementById('historyContainer').innerHTML = '<div class="text-center py-10"><p>กำลังดึงข้อมูล...</p></div>';
   try {
-    const res = await fetch(API_URL + "?action=getClosedCases&pwd=" + encodeURIComponent(pwd)).then(r => r.json());
-    if(res.status === "success") { 
-      allHistoryCases = res.data; 
-      displayHistory(allHistoryCases); 
-    }
-  } catch(e) { 
-    document.getElementById('historyContainer').innerHTML = '<p class="text-red-500 text-center">เกิดข้อผิดพลาด</p>'; 
-  }
+    const res = await fetch(API_URL + "?action=getClosedCases&pwd=" + encodeURIComponent(pwd)).then(r=>r.json());
+    if(res.status==="success") { allHistoryCases = res.data; displayHistory(allHistoryCases); }
+  } catch(e) { document.getElementById('historyContainer').innerHTML = '<p class="text-red-500 text-center">เกิดข้อผิดพลาด</p>'; }
 }
 
 function filterHistory() {
@@ -152,15 +146,15 @@ function filterHistory() {
   displayHistory(allHistoryCases.filter(c => (c.caseId||"").toLowerCase().includes(query) || (c.location||"").toLowerCase().includes(query) || (c.type||"").toLowerCase().includes(query)));
 }
 
+// โหลดกราฟ (แก้ไข: เพิ่ม &pwd=)[cite: 3]
 async function loadCharts() {
   const pwd = document.getElementById('adminPassword').value.trim();
   try {
-    const res = await fetch(API_URL + "?action=getChartData&pwd=" + encodeURIComponent(pwd)).then(r => r.json());
-    if(res.status === "success") renderCharts(res.data);
+    const res = await fetch(API_URL + "?action=getChartData&pwd=" + encodeURIComponent(pwd)).then(r=>r.json());
+    if(res.status==="success") renderCharts(res.data);
   } catch(e) { console.error("Chart load error", e); }
 }
 
-// UI แสดงสถิติและเคส
 function showStats(s) {
   document.getElementById('statTotal').innerText = s.total;
   document.getElementById('statDone').innerText = s.done;
@@ -219,13 +213,13 @@ function displayHistory(cases) {
   container.innerHTML = html;
 }
 
-// Fetch POST รับเรื่อง
+// แก้ไข: เพิ่ม pwd ส่งไปกับ JSON[cite: 3]
 async function acceptCase(row, btn) {
   var name = document.getElementById('officerName').value;
   var pwd = document.getElementById('adminPassword').value.trim();
   if(!name) return alert('กรุณาพิมพ์ชื่อเจ้าหน้าที่รับเรื่อง');
   btn.disabled = true; btn.innerText = "กำลังรับเรื่อง...";
-
+  
   try {
     const res = await fetch(API_URL, { 
       method: "POST", 
@@ -236,24 +230,34 @@ async function acceptCase(row, btn) {
         officerName: name,
         pwd: pwd 
       }) 
-    }).then(r => r.json());
-
-    if(res.status === "success") loadDashboard(); 
-    else { alert("ผิดพลาด: " + res.message); btn.disabled = false; btn.innerText = "✋ รับเรื่องดำเนินการ"; }
+    }).then(r=>r.json());
+    if(res.status === "success") loadDashboard(); else { alert("ผิดพลาด: " + res.message); btn.disabled = false; btn.innerText = "✋ รับเรื่องดำเนินการ"; }
   } catch(e) { alert("เชื่อมต่อไม่ได้"); btn.disabled = false; }
 }
 
-// Fetch POST ปิดเคส
+// แก้ไข: เพิ่ม pwd ส่งไปกับ JSON[cite: 3]
 async function finishCase(row, btn) {
   var fileInput = document.getElementById('file_'+row);
   var remarkInput = document.getElementById('remark_'+row).value;
+  var pwd = document.getElementById('adminPassword').value.trim();
   if(fileInput.files.length === 0) return alert('อัปโหลดรูปก่อนครับ');
   btn.disabled = true; btn.innerText = "กำลังสร้าง PDF...";
   
   var file = fileInput.files[0]; var reader = new FileReader();
   reader.onload = async function(e) {
     try {
-      const res = await fetch(API_URL, { method: "POST", body: JSON.stringify({ action: "updateCase", row: row, updateType: "done", remark: remarkInput, imageFile: e.target.result.split(',')[1], mimeType: file.type }) }).then(r=>r.json());
+      const res = await fetch(API_URL, { 
+        method: "POST", 
+        body: JSON.stringify({ 
+          action: "updateCase", 
+          row: row, 
+          updateType: "done", 
+          remark: remarkInput, 
+          imageFile: e.target.result.split(',')[1], 
+          mimeType: file.type,
+          pwd: pwd 
+        }) 
+      }).then(r=>r.json());
       if(res.status === "success") { document.getElementById('adminSuccessModal').classList.remove('hidden'); loadDashboard(); } 
       else { alert("ผิดพลาด: " + res.message); btn.disabled = false; btn.innerText = "🟢 ปิดเคสและส่งรายงาน"; }
     } catch(err) { alert("เชื่อมต่อไม่ได้"); btn.disabled = false; }
@@ -261,21 +265,6 @@ async function finishCase(row, btn) {
   reader.readAsDataURL(file);
 }
 
-// ภายใน reader.onload ให้เพิ่ม pwd: pwd
-const res = await fetch(API_URL, { 
-  method: "POST", 
-  body: JSON.stringify({ 
-    action: "updateCase", 
-    row: row, 
-    updateType: "done", 
-    remark: remarkInput, 
-    imageFile: e.target.result.split(',')[1], 
-    mimeType: file.type,
-    pwd: document.getElementById('adminPassword').value.trim()
-  }) 
-}).then(r => r.json());
-  
-// กราฟ
 function renderCharts(data) {
   if (myMonthlyChart) myMonthlyChart.destroy();
   if (myTypeChart) myTypeChart.destroy();
@@ -300,7 +289,6 @@ function renderCharts(data) {
   });
 }
 
-// ส่วนดาวน์โหลด Excel
 function toggleExportInputs() {
   var type = document.getElementById('exportFilterType').value;
   var container = document.getElementById('exportFilterValueContainer');
@@ -320,12 +308,14 @@ function toggleExportInputs() {
   }
 }
 
+// แก้ไข: เพิ่ม &pwd= และเปลี่ยนชื่อไฟล์ Excel[cite: 3]
 async function exportExcelReport(btn) {
   var originalText = btn.innerHTML;
   btn.innerHTML = 'กำลังเตรียมไฟล์...'; btn.disabled = true;
 
+  var pwd = document.getElementById('adminPassword').value.trim();
   var type = document.getElementById('exportFilterType').value;
-  var queryParams = "?action=getMonthlyExportData&type=" + type;
+  var queryParams = "?action=getMonthlyExportData&pwd=" + encodeURIComponent(pwd) + "&type=" + type;
   if(type === 'month') queryParams += "&month=" + document.getElementById('exportMonth').value + "&year=" + document.getElementById('exportYear').value;
   else if(type === 'year') queryParams += "&year=" + document.getElementById('exportYearOnly').value;
   else if(type === 'problem') queryParams += "&value=" + encodeURIComponent(document.getElementById('exportProblemType').value);
@@ -337,7 +327,7 @@ async function exportExcelReport(btn) {
       var wb = XLSX.utils.book_new();
       var ws = XLSX.utils.aoa_to_sheet(res.data);
       XLSX.utils.book_append_sheet(wb, ws, "Report");
-      XLSX.writeFile(wb, 'Report_Phitsanulok.xlsx');
+      XLSX.writeFile(wb, 'Report_BanMi.xlsx');
     } else alert("❌ ไม่พบข้อมูล");
   } catch(e) { btn.innerHTML = originalText; btn.disabled = false; alert("เชื่อมต่อไม่ได้"); }
 }
